@@ -4,6 +4,7 @@ module MazeRunner exposing
   , makeMazeRunner
   , getRow
   , getCol
+  , getLoc
   , move
   , moveUp
   , moveDown
@@ -40,6 +41,10 @@ getCol : MazeRunner -> Int
 getCol (BasicMazeRunner (row, col)) =
   col
 
+
+getLoc : MazeRunner -> Maze.Location
+getLoc (BasicMazeRunner loc) =
+  loc
 
 move : Direction -> MazeRunner -> MazeRunner
 move dir (BasicMazeRunner (row, col)) =

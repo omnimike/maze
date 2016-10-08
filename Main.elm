@@ -5,11 +5,13 @@ import Maze
 import MazeRunner
 import MazeView
 import Keyboard
+import Html
 
 
 type alias Model =
   { maze : Maze.Maze
   , runner : MazeRunner.MazeRunner
+  , finished : Bool
   }
 
 
@@ -22,7 +24,7 @@ main =
   { init = init
   , update = update
   , subscriptions = subscriptions
-  , view = mazeViewModel >> MazeView.view
+  , view = view
   }
 
 
@@ -31,28 +33,65 @@ init =
   let
     maze = Result.withDefault Maze.emptyMaze Maze.sampleMaze
     runner = MazeRunner.makeMazeRunner (Maze.getStart maze)
+    finished = False
   in
-    (Model maze runner, Cmd.none)
+    (Model maze runner finished, Cmd.none)
+
+
+view : Model -> Html.Html Msg
+view model =
+  if model.finished then
+    Html.text "~congrats! you won the game~"
+  else
+    MazeView.view (mazeViewModel model)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update msg {maze, runner} =
+update msg model =
   case msg of
     KeyMsg keycode ->
       let
-        updatedRunner = case keycode of
+        updatedModel = case keycode of
           75 ->
-            MazeRunner.moveUp runner
+            move MazeRunner.Up model
           74 ->
-            MazeRunner.moveDown runner
+            move MazeRunner.Down model
           72 ->
-            MazeRunner.moveLeft runner
+            move MazeRunner.Left model
           76 ->
-            MazeRunner.moveRight runner
+            move MazeRunner.Right model
           _ ->
-            runner
+            model
       in
-        ({maze = maze, runner = updatedRunner}, Cmd.none)
+        (updatedModel, Cmd.none)
+
+
+move : MazeRunner.Direction -> Model -> Model
+move dir model =
+  let
+    maze = model.maze
+    runner = model.runner
+    (row, col) = (MazeRunner.getLoc runner)
+    nextTile = case dir of
+      MazeRunner.Up ->
+        Maze.tileAt maze (row - 1, col)
+      MazeRunner.Down ->
+        Maze.tileAt maze (row + 1, col)
+      MazeRunner.Left ->
+        Maze.tileAt maze (row, col - 1)
+      MazeRunner.Right ->
+        Maze.tileAt maze (row, col + 1)
+  in
+    if not model.finished then
+      case nextTile of
+        Maze.Wall ->
+          model
+        Maze.End ->
+          {model | finished = True}
+        _ ->
+          {model | runner = MazeRunner.move dir runner}
+    else
+      model
 
 
 subscriptions : Model -> Sub Msg
@@ -61,4 +100,7 @@ subscriptions model =
 
 
 mazeViewModel : Model -> MazeView.Model
-mazeViewModel model = model
+mazeViewModel model =
+  { maze = model.maze
+  , runner = model.runner
+  }
